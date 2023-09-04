@@ -14,13 +14,16 @@ struct ContentView: View {
     @State private var wordToGuess = ""
     @State private var revealdWord = ""
     @State private var lettersGuessed = ""
+    @State private var guessesRemaining = 8
     @State private var gameStatusMassage = "How Many Guesses to Uncover the Hidden Word?"
     @State private var guessedLetter = ""
     @State private var imageName = "flower8"
     @State private var playAgainHidden = true
+    @State private var playAgainButtonLabel = "Another Word?"
     
     @FocusState private var textFieldIsFocused: Bool
     private let wordsToGuess = ["SWIFT","DOG", "CAT"]
+    private let maximumGuesses = 8
     
     var body: some View {
         VStack {
@@ -43,6 +46,8 @@ struct ContentView: View {
             Text(gameStatusMassage)
                 .font(.title)
                 .multilineTextAlignment(.center)
+                .frame(height: 80)
+                .minimumScaleFactor(0.5)
                 .padding()
             
             Spacer()
@@ -77,20 +82,35 @@ struct ContentView: View {
                                 return
                             }
                             guessALetter()
+                            updateGamePlay()
                         }
                         .focused($textFieldIsFocused)
                     
                     Button("Gues a Letter") {
                         guessALetter()
+                        updateGamePlay()
                     }
                     .buttonStyle(.bordered)
                     .tint(.mint)
                     .disabled(guessedLetter.isEmpty)
                 }
             } else {
-                Button("Another Word?") {
-                    //TODO: Another Word Button action
-                    
+                Button(playAgainButtonLabel) {
+                    //If all words have been guessed...
+                    if currentWordIndex == wordsToGuess.count {
+                        currentWordIndex = 0
+                        wordsGuessed = 0
+                        wordsMissed = 0
+                        playAgainButtonLabel = "Another Word?"
+                    }
+                   // Reset after a word was guessed or missed
+                    wordToGuess = wordsToGuess[currentWordIndex]
+                    revealdWord = "_" + String(repeating: " _", count: wordToGuess.count-1)
+                    lettersGuessed = ""
+                    guessesRemaining = maximumGuesses
+                    imageName = "flower\(guessesRemaining)"
+                    gameStatusMassage = "How Many Guesses to Uncover the Hidden Word?"
+                    playAgainHidden = true
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.mint)
@@ -107,7 +127,8 @@ struct ContentView: View {
         .onAppear() {
             wordToGuess = wordsToGuess[currentWordIndex]
             //Create a string from a repeating value
-            revealdWord = "_" + String(repeating: " _", count: wordToGuess.count - 1)
+            revealdWord = "_" + String(repeating: " _", count: wordToGuess.count-1)
+            guessesRemaining = maximumGuesses
         }
     }
     func guessALetter() {
@@ -123,6 +144,37 @@ struct ContentView: View {
                 revealdWord = revealdWord + "_ "
             }
         }
+       // revealdWord.removeLast()
+        guessedLetter = ""
+    }
+    
+    func updateGamePlay() {
+        if !wordToGuess.contains(guessedLetter) {
+            guessesRemaining -= 1
+            imageName = "flower\(guessesRemaining)"
+        }
+        
+        //When do we play another word?
+        if !revealdWord.contains("_") { //Guessed when no _ in revealedWord
+            gameStatusMassage = "You've Guessed It! It Took You \(lettersGuessed.count) Guesses to Guess the Word"
+            wordsGuessed += 1
+            currentWordIndex += 1
+            playAgainHidden = false
+        } else if guessesRemaining == 0 { //Word Missed
+            gameStatusMassage = "So Sorry. You're All Out of Guesses."
+            wordsMissed += 1
+            currentWordIndex += 1
+            playAgainHidden = false
+        } else { //Keep guessing
+            gameStatusMassage = "You've Made \(lettersGuessed.count) Guess\(lettersGuessed.count == 1 ? "" : "es")"
+        }
+        
+        if currentWordIndex == wordsToGuess.count {
+            playAgainButtonLabel = "Restart Game?"
+            gameStatusMassage = gameStatusMassage + "\nYu've Tried All of the Words. Restart from the Beginning?"
+        }
+        
+        guessedLetter = ""
     }
 }
 
